@@ -1,0 +1,3 @@
+
+class FFT:
+    print("")
