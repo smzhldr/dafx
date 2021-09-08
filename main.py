@@ -1,38 +1,35 @@
 import wave
-
 import numpy as np
 import pylab as plt
 
+from biquads_effect import *
+
 
 def main() -> None:
-    wave_file = wave.open('mono_s16_48k.wav', 'rb')
+    wave_file = wave.open('mixue_48k.wav', 'rb')
     params = wave_file.getparams()
-    channels, sample_width, sample_rate, num_frames = params[:4]
+    channels, bit_depth, sample_rate, num_frames = params[:4]
 
     str_data = wave_file.readframes(num_frames)
     wave_file.close()
 
-    wave_data = np.frombuffer(str_data, dtype=np.short) / 32768
+    audio_data = np.frombuffer(str_data, dtype=np.short)
+    audio_data = np.asarray(audio_data / 32768.0, dtype=float)
 
-    fft_size = 1024
-    start = 0
-    freq = np.linspace(0, int(sample_rate), int(fft_size))
-    c = np.fft.fft(wave_data[start:start + (fft_size - 1)])
+    # butter_worth = LowPassEffect(sample_rate, cutoff_frq=500, q=0.707)
+    # butter_worth = HighPassEffect(sample_rate, cutoff_frq=8000, q=0.707)
+    # butter_worth = BandPassEffect(sample_rate, cutoff_frq=3000, band_width=1000)
+    butter_worth = PeakEQEffect(sample_rate, cutoff_frq=300, band_width=200, gain=-10)
+    audio_data = butter_worth.process(audio_data)
 
+    audio_data = np.asarray(audio_data * 32768.0, dtype=np.short)
 
-
-    plt.subplot(212)
-    plt.plot(freq[start:round(fft_size - 1)], abs(c[:round(len(c))]), 'r')
-    plt.title('Freq')
-    plt.xlabel("Freq/Hz")
-    plt.show()
-
-    # time = np.arange(0, num_frames) / sample_rate
-    # plt.figure()
-    # plt.subplot(211)
-    # plt.plot(time, wave_data)
-    # plt.xlabel("time/s")
-    # plt.title('Wave')
+    out_wave_file = wave.open('output.wav', 'wb')
+    out_wave_file.setnchannels(channels)
+    out_wave_file.setsampwidth(bit_depth)
+    out_wave_file.setframerate(sample_rate)
+    out_wave_file.writeframes(audio_data.tobytes())
+    out_wave_file.close()
 
 
 if __name__ == "__main__":
